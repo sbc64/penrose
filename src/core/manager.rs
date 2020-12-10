@@ -757,10 +757,13 @@ impl<'a> WindowManager<'a> {
 
     /// Kill the focused client window.
     pub fn kill_client(&mut self) {
-        let id = self.conn.focused_client();
+        self.kill_client_id(self.conn.focused_client());
+    }
+
+    /// Kill the client at the specfic id;
+    pub fn kill_client_id(&mut self, id: WinId) {
         self.conn.send_client_event(id, "WM_DELETE_WINDOW").unwrap();
         self.conn.flush();
-
         self.remove_client(id);
         self.apply_layout(self.active_ws_index());
     }
