@@ -1603,6 +1603,15 @@ impl<X: XConn> WindowManager<X> {
         self.set_fullscreen(id, !client_is_fullscreen)
     }
 
+    pub fn kill_client_id(&mut self, id: u32) -> Result<()> {
+        trace!(id, "sending destroy");
+        let res = self.conn.destroy_client(id);
+        if let Err(e) = res {
+            error!(id, "error killing client: {}", e);
+        }
+        self.conn.flush();
+        Ok(())
+    }
     /// Kill the focused client window.
     ///
     /// # Example
@@ -1617,28 +1626,13 @@ impl<X: XConn> WindowManager<X> {
     #[tracing::instrument(level = "debug", err, skip(self))]
     pub fn kill_client(&mut self) -> Result<()> {
         if let Some(id) = self.focused_client {
-            // let del = Atom::WmDeleteWindow.as_ref();
-            // let res = if let Ok(true) = self.conn.client_supports_protocol(id, del) {
-            //     trace!(id, "client supports WmDeleteWindow: sending client event");
-            //     ClientMessageKind::DeleteWindow(id)
-            //         .as_message(&self.conn)
-            //         .and_then(|msg| self.conn.send_client_event(msg))
-            //         .or(self.conn.destroy_client(id))
-            // } else {
-            //     trace!(id, "client doesn't supports WmDeleteWindow: destroying");
-            //     self.conn.destroy_client(id)
-            // };
-
-            trace!(id, "sending destroy");
-            let res = self.conn.destroy_client(id);
-            if let Err(e) = res {
-                error!(id, "error killing client: {}", e);
+            match self.kill_client_id(id) {
+                Ok(()) => return Ok(()),
+                Err(err) => return Err(err),
             }
-
-            self.conn.flush();
+        } else {
+            Ok(())
         }
-
-        Ok(())
     }
 
     /// Get a reference to the first Screen satisfying 'selector'. Xid selectors will return
